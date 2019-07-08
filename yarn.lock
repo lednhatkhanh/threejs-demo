@@ -2556,6 +2556,11 @@ dashdash@^1.12.0:
   dependencies:
     assert-plus "^1.0.0"
 
+dat.gui@^0.7.6:
+  version "0.7.6"
+  resolved "https://registry.yarnpkg.com/dat.gui/-/dat.gui-0.7.6.tgz#92182a0f2dc96c26910f888238d3839166d82f76"
+  integrity sha512-9Uqr4aQUvp9q5P2b4y6gK604HXafubOq578OmOS8mjrIkYrBP4EbQ9gz9YRXgyPh7aQi+b9H/jAG7EucmhYpSA==
+
 date-now@^0.1.4:
   version "0.1.4"
   resolved "https://registry.yarnpkg.com/date-now/-/date-now-0.1.4.tgz#eaf439fd4d4848ad74e5cc7dbef200672b9e345b"
@@ -7413,6 +7418,16 @@ thread-loader@^2.1.2:
     loader-utils "^1.1.0"
     neo-async "^2.6.0"
 
+three-orbitcontrols@^2.102.1:
+  version "2.102.1"
+  resolved "https://registry.yarnpkg.com/three-orbitcontrols/-/three-orbitcontrols-2.102.1.tgz#f4071e79f1c12e2b7668992cb06cfa29a816629d"
+  integrity sha512-mp5qc5mooCtjgSloMFzIEI2VQVkvBDWDMYtbxY3TFB/BCCYpR6NV7/dD5+EUyzR90/a9H356s9QR+2PhH48f6w==
+
+three@^0.106.2:
+  version "0.106.2"
+  resolved "https://registry.yarnpkg.com/three/-/three-0.106.2.tgz#6752d304c470e4df230944ecd45325e7bf79e1f8"
+  integrity sha512-4Tlx43uoxnIaZFW2Bzkd1rXsatvVHEWAZJy8LuE+s6Q8c66ogNnhfq1bHiBKPAnXP230LD11H/ScIZc2LZMviA==
+
 through2@^2.0.0:
   version "2.0.5"
   resolved "https://registry.yarnpkg.com/through2/-/through2-2.0.5.tgz#01c1e39eb31d07cb7d03a96a70823260b23132cd"
@@ -7821,6 +7836,11 @@ vue-loader@^15.7.0:
     loader-utils "^1.1.0"
     vue-hot-reload-api "^2.3.0"
     vue-style-loader "^4.1.0"
+
+vue-router@^3.0.3:
+  version "3.0.7"
+  resolved "https://registry.yarnpkg.com/vue-router/-/vue-router-3.0.7.tgz#b36ca107b4acb8ff5bc4ff824584059c23fcb87b"
+  integrity sha512-utJ+QR3YlIC/6x6xq17UMXeAfxEvXA0VKD3PiSio7hBOZNusA1jXcbxZxVEfJunLp48oonjTepY8ORoIlRx/EQ==
 
 vue-style-loader@^4.1.0:
   version "4.1.2"
