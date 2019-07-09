@@ -1,16 +1,24 @@
 <template>
-  <canvas ref="canvas"></canvas>
+  <div>
+    <canvas ref="canvas"></canvas>
+    <section id="loading-screen">
+      <div id="loader"></div>
+    </section>
+  </div>
 </template>
 
 <script>
 import * as THREE from "three";
-// import OrbitControls from "three-orbitcontrols";
-import * as dat from 'dat.gui';
+import OrbitControls from "three-orbitcontrols";
+import * as dat from "dat.gui";
+import * as STATS from "stats.js";
 
 import { OBJLoader } from "./loaders/obj-loader";
 // import { MTLLoader } from "./loaders/mtl-loader";
 
-const materialList = Array.from({ length: 5 }).map((_v, i) => `material${i + 1}`);
+const materialList = Array.from({ length: 5 }).map(
+  (_v, i) => `material${i + 1}`
+);
 
 export default {
   name: "app",
@@ -24,7 +32,8 @@ export default {
       shirt: undefined,
       controller: undefined,
       oldController: undefined,
-      materials: {},
+      stats: undefined,
+      materials: {}
     };
   },
   mounted() {
@@ -32,6 +41,10 @@ export default {
     this.init();
   },
   methods: {
+    onTransitionEnd(event) {
+      const element = event.target;
+      element.remove();
+    },
     init() {
       this.camera = new THREE.PerspectiveCamera(
         75,
@@ -41,6 +54,7 @@ export default {
       );
       this.camera.position.z = 0.8;
       this.scene = new THREE.Scene();
+      this.scene.background = new THREE.Color(0xf2f3f4);
 
       const ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
       this.scene.add(ambientLight);
@@ -49,15 +63,27 @@ export default {
       this.camera.add(pointLight);
       this.scene.add(this.camera);
 
-      const plane = this.createPlane();
-      this.scene.add(plane);
-
       this.createDataGUI();
+      this.stats = new STATS();
+      this.stats.showPanel(0);
+      document.body.appendChild(this.stats.dom);
 
-      const buttonTexture = new THREE.TextureLoader().load('assets/shirt/textures/button.jpg');
-      const buttonMaterial = new THREE.MeshBasicMaterial( { map: buttonTexture } );
+      const buttonTexture = new THREE.TextureLoader().load(
+        "assets/shirt/textures/button.jpg"
+      );
+      const buttonMaterial = new THREE.MeshBasicMaterial({
+        map: buttonTexture
+      });
 
-      new OBJLoader().load(
+      const loadingManager = new THREE.LoadingManager(() => {
+        const loadingScreen = document.getElementById("loading-screen");
+        loadingScreen.classList.add("fade-out");
+
+        // optional: remove loader from DOM via event listener
+        loadingScreen.addEventListener("transitionend", this.onTransitionEnd);
+      });
+
+      new OBJLoader(loadingManager).load(
         "/assets/shirt/shirt.obj",
         obj => {
           obj.traverse(child => {
@@ -94,11 +120,12 @@ export default {
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.setPixelRatio(window.devicePixelRatio);
 
-      // this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-      // this.controls.enableDamping = true;
-      // this.controls.dampingFactor = 0.25;
-      // this.controls.enableZoom = true;
+      this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+      this.controls.enableDamping = true;
+      this.controls.dampingFactor = 0.25;
+      this.controls.enableZoom = true;
 
+      this.stats.begin();
       this.render();
 
       window.addEventListener(
@@ -107,16 +134,8 @@ export default {
         false
       );
     },
-    createPlane() {
-      const geometry = new THREE.PlaneGeometry(20, 20, 32);
-      const material = new THREE.MeshBasicMaterial( {color: 0xffffff, side: THREE.DoubleSide} );
-      const plane = new THREE.Mesh( geometry, material );
-      plane.position.z -= 2;
-
-      return plane;
-    },
     createDataGUI() {
-      this.controller = new function() {
+      this.controller = new (function() {
         this.hideCollar = false;
         this.hideCuffs = false;
         this.hideButtons = false;
@@ -126,60 +145,58 @@ export default {
         this.backMaterial = materialList[0];
         this.sleevesMaterial = materialList[0];
         this.cuffsMaterial = materialList[0];
-      }();
+      })();
 
       this.oldController = {
-        ...this.controller,
+        ...this.controller
       };
 
       const gui = new dat.GUI();
-      const shirtFolder = gui.addFolder('Shirt');
+      const shirtFolder = gui.addFolder("Shirt");
       shirtFolder.closed = false;
-      shirtFolder.add(this.controller, 'hideCollar');
-      shirtFolder.add(this.controller, 'hideCuffs');
-      shirtFolder.add(this.controller, 'hideButtons');
+      shirtFolder.add(this.controller, "hideCollar");
+      shirtFolder.add(this.controller, "hideCuffs");
+      shirtFolder.add(this.controller, "hideButtons");
 
-      const materialFolder = gui.addFolder('Materials');
+      const materialFolder = gui.addFolder("Materials");
       materialFolder.closed = false;
-      materialFolder.add(this.controller, 'frontMaterial', materialList);
-      materialFolder.add(this.controller, 'backMaterial', materialList);
-      materialFolder.add(this.controller, 'sleevesMaterial', materialList);
-      materialFolder.add(this.controller, 'cuffsMaterial', materialList);
+      materialFolder.add(this.controller, "frontMaterial", materialList);
+      materialFolder.add(this.controller, "backMaterial", materialList);
+      materialFolder.add(this.controller, "sleevesMaterial", materialList);
+      materialFolder.add(this.controller, "cuffsMaterial", materialList);
     },
     loadAllShirtMaterials() {
-      materialList.forEach((materialName) => {
+      materialList.forEach(materialName => {
         const textureLoader = new THREE.TextureLoader();
         const materialPath = `assets/shirt/textures/${materialName}`;
 
         const map = textureLoader.load(`${materialPath}/map.jpg`);
         const normal = textureLoader.load(`${materialPath}/normal.jpg`);
-        const displacement = textureLoader.load(`${materialPath}/displacement.png`);
+        const displacement = textureLoader.load(
+          `${materialPath}/displacement.png`
+        );
         const occlusion = textureLoader.load(`${materialPath}/occlusion.jpg`);
         // const rough = textureLoader.load(`${materialPath}/rough.jpg`);
 
         map.userData = {
-          fitTo : 1
+          fitTo: 1
         };
         map.wrapS = THREE.RepeatWrapping;
         map.wrapT = THREE.RepeatWrapping;
-        map.offset.set( 0, 0 );
-        map.repeat.set( 10, 10 );
+        map.offset.set(0, 0);
+        map.repeat.set(10, 10);
 
-        this.materials[materialName] = new THREE.MeshPhongMaterial({ 
+        this.materials[materialName] = new THREE.MeshPhongMaterial({
           map,
           normalMap: normal,
           bumpMap: displacement,
           aoMap: occlusion,
-          shininess: 0,
+          shininess: 0
         });
       });
     },
     render() {
-      requestAnimationFrame(this.render);
-
       if (this.shirt) {
-        this.shirt.rotation.y += 0.02;
-
         this.handleShowHideButtons();
         this.handleShowHideCollar();
         this.handleShowHideCuffs();
@@ -189,10 +206,13 @@ export default {
         this.handleCuffsMaterialChange();
       }
 
+      this.stats.update();
+
       this.camera.lookAt(this.scene.position);
       this.renderer.render(this.scene, this.camera);
 
       // this.controls.update();
+      requestAnimationFrame(this.render);
     },
     resizeRendererToDisplaySize() {
       const canvas = this.$refs.canvas;
@@ -204,7 +224,7 @@ export default {
     },
     handleShowHideButtons() {
       if (this.controller.hideButtons != this.oldController.hideButtons) {
-        this.shirt.traverse((child) => {
+        this.shirt.traverse(child => {
           if (child.name.includes("Button")) {
             child.visible = !this.controller.hideButtons;
           }
@@ -212,13 +232,13 @@ export default {
 
         this.oldController = {
           ...this.oldController,
-          hideButtons: this.controller.hideButtons,
+          hideButtons: this.controller.hideButtons
         };
       }
     },
     handleShowHideCollar() {
       if (this.controller.hideCollar != this.oldController.hideCollar) {
-        this.shirt.traverse((child) => {
+        this.shirt.traverse(child => {
           if (child.name.includes("Collar")) {
             child.visible = !this.controller.hideCollar;
           }
@@ -226,13 +246,13 @@ export default {
 
         this.oldController = {
           ...this.oldController,
-          hideCollar: this.controller.hideCollar,
+          hideCollar: this.controller.hideCollar
         };
       }
     },
     handleShowHideCuffs() {
       if (this.controller.hideCuffs != this.oldController.hideCuffs) {
-        this.shirt.traverse((child) => {
+        this.shirt.traverse(child => {
           if (child.name.includes("Cuff")) {
             child.visible = !this.controller.hideCuffs;
           }
@@ -240,16 +260,16 @@ export default {
 
         this.oldController = {
           ...this.oldController,
-          hideCuffs: this.controller.hideCuffs,
+          hideCuffs: this.controller.hideCuffs
         };
       }
     },
     handleFrontMaterialChange() {
       if (
-        this.oldController.frontMaterial !== this.controller.frontMaterial
-        && this.materials[this.controller.frontMaterial]
+        this.oldController.frontMaterial !== this.controller.frontMaterial &&
+        this.materials[this.controller.frontMaterial]
       ) {
-        this.shirt.traverse((child) => {
+        this.shirt.traverse(child => {
           if (child.name.includes("Front")) {
             child.material = this.materials[this.controller.frontMaterial];
           }
@@ -257,16 +277,16 @@ export default {
 
         this.oldController = {
           ...this.oldController,
-          frontMaterial: this.controller.frontMaterial,
+          frontMaterial: this.controller.frontMaterial
         };
       }
     },
     handleBackMaterialChange() {
       if (
-        this.oldController.backMaterial !== this.controller.backMaterial
-        && this.materials[this.controller.backMaterial]
+        this.oldController.backMaterial !== this.controller.backMaterial &&
+        this.materials[this.controller.backMaterial]
       ) {
-        this.shirt.traverse((child) => {
+        this.shirt.traverse(child => {
           if (child.name.includes("Back") || child.name.includes("Yoke")) {
             child.material = this.materials[this.controller.backMaterial];
           }
@@ -274,16 +294,17 @@ export default {
 
         this.oldController = {
           ...this.oldController,
-          backMaterial: this.controller.backMaterial,
+          backMaterial: this.controller.backMaterial
         };
       }
     },
     handleSleevesMaterialChange() {
       if (
-        this.oldController.sleevesMaterial !== this.controller.sleevesMaterial
-        && this.materials[this.controller.sleevesMaterial]
+        this.oldController.sleevesMaterial !==
+          this.controller.sleevesMaterial &&
+        this.materials[this.controller.sleevesMaterial]
       ) {
-        this.shirt.traverse((child) => {
+        this.shirt.traverse(child => {
           if (child.name.includes("Sleeve")) {
             child.material = this.materials[this.controller.sleevesMaterial];
           }
@@ -291,16 +312,16 @@ export default {
 
         this.oldController = {
           ...this.oldController,
-          sleevesMaterial: this.controller.sleevesMaterial,
+          sleevesMaterial: this.controller.sleevesMaterial
         };
       }
     },
     handleCuffsMaterialChange() {
       if (
-        this.oldController.cuffsMaterial !== this.controller.cuffsMaterial
-        && this.materials[this.controller.cuffsMaterial]
+        this.oldController.cuffsMaterial !== this.controller.cuffsMaterial &&
+        this.materials[this.controller.cuffsMaterial]
       ) {
-        this.shirt.traverse((child) => {
+        this.shirt.traverse(child => {
           if (child.name.includes("Cuff")) {
             child.material = this.materials[this.controller.cuffsMaterial];
           }
@@ -308,18 +329,98 @@ export default {
 
         this.oldController = {
           ...this.oldController,
-          cuffsMaterial: this.controller.cuffsMaterial,
+          cuffsMaterial: this.controller.cuffsMaterial
         };
       }
-    },
+    }
   }
 };
-
 </script>
 
 <style>
 body {
   margin: 0;
   overflow: hidden;
+}
+
+#loading-screen {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #f2f3f4;
+  opacity: 1;
+  transition: 1s opacity;
+}
+
+#loading-screen.fade-out {
+  opacity: 0;
+}
+
+#loader {
+  display: block;
+  position: relative;
+  left: 50%;
+  top: 50%;
+  width: 150px;
+  height: 150px;
+  margin: -75px 0 0 -75px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #9370db;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+#loader:before {
+  content: "";
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  right: 5px;
+  bottom: 5px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #ba55d3;
+  -webkit-animation: spin 3s linear infinite;
+  animation: spin 3s linear infinite;
+}
+#loader:after {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  right: 15px;
+  bottom: 15px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: #ff00ff;
+  -webkit-animation: spin 1.5s linear infinite;
+  animation: spin 1.5s linear infinite;
+}
+@-webkit-keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+    -ms-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    -ms-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
+}
+@keyframes spin {
+  0% {
+    -webkit-transform: rotate(0deg);
+    -ms-transform: rotate(0deg);
+    transform: rotate(0deg);
+  }
+  100% {
+    -webkit-transform: rotate(360deg);
+    -ms-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
 }
 </style>
