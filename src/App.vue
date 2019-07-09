@@ -88,6 +88,19 @@ export default {
         obj => {
           obj.traverse(child => {
             if (child.isMesh) {
+              // child.geometry.computeVertexNormals();
+              // const tempGeo = new THREE.Geometry().fromBufferGeometry(
+              //   child.geometry
+              // );
+
+              // tempGeo.mergeVertices();
+
+              // // after only mergeVertices my textrues were turning black so this fixed normals issues
+              // tempGeo.computeVertexNormals();
+              // tempGeo.computeFaceNormals();
+
+              // child.geometry = new THREE.BufferGeometry().fromGeometry(tempGeo);
+
               if (child.name.includes("Button")) {
                 child.material = buttonMaterial;
               } else {
@@ -116,7 +129,7 @@ export default {
       );
 
       // Create the renderer
-      this.renderer = new THREE.WebGLRenderer({ canvas: this.$refs.canvas });
+      this.renderer = new THREE.WebGLRenderer({ canvas: this.$refs.canvas, antialias: true, });
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.setPixelRatio(window.devicePixelRatio);
 
@@ -318,7 +331,8 @@ export default {
     },
     handleCuffsMaterialChange() {
       if (
-        this.oldController.cuffsMaterial !== this.controller.cuffsMaterial &&
+        !this.controller.hideCuffs
+        && this.oldController.cuffsMaterial !== this.controller.cuffsMaterial &&
         this.materials[this.controller.cuffsMaterial]
       ) {
         this.shirt.traverse(child => {
