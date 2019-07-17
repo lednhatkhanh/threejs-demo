@@ -5,7 +5,10 @@ https://threejs-demo.lednhatkhanh.now.sh/
 ## Project setup
 ```
 yarn install
+cp .env.example .env
 ```
+
+Update your config
 
 ### Compiles and hot-reloads for development
 ```
@@ -29,3 +32,7 @@ yarn run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+### API
+https://github.com/lednhatkhanh/threejs-api-demo
+
