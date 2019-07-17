@@ -34,14 +34,17 @@ export default {
       controller: undefined,
       oldController: undefined,
       stats: undefined,
-      materials: {}
+      materials: {},
+      gui: undefined
     };
   },
   async mounted() {
     this.materials = { ...(await this.loadAllShirtMaterials()) };
-    setTimeout(() => {
-      this.init();
-    }, 1000);
+    this.init();
+  },
+  destroyed() {
+    this.stats.dom.remove();
+    this.gui.destroy();
   },
   methods: {
     onTransitionEnd(event) {
@@ -159,8 +162,8 @@ export default {
     },
     createDataGUI() {
       this.controller = new (function() {
-        this.hideCuffs = false;
-        this.hideButtons = false;
+        this.cuffs = "normal";
+        this.buttons = "normal";
 
         // Material
         this.frontMaterial = materialList[0];
@@ -173,13 +176,13 @@ export default {
         ...this.controller
       };
 
-      const gui = new dat.GUI();
-      const shirtFolder = gui.addFolder("Shirt");
+      this.gui = new dat.GUI();
+      const shirtFolder = this.gui.addFolder("Shirt");
       shirtFolder.closed = false;
-      shirtFolder.add(this.controller, "hideCuffs");
-      shirtFolder.add(this.controller, "hideButtons");
+      shirtFolder.add(this.controller, "cuffs", ["normal", "noCuffs"]);
+      shirtFolder.add(this.controller, "buttons", ["normal", "noButtons"]);
 
-      const materialFolder = gui.addFolder("Materials");
+      const materialFolder = this.gui.addFolder("Materials");
       materialFolder.closed = false;
       materialFolder.add(this.controller, "frontMaterial", materialList);
       materialFolder.add(this.controller, "backMaterial", materialList);
@@ -251,16 +254,16 @@ export default {
       }
     },
     handleShowHideButtons() {
-      if (this.controller.hideButtons != this.oldController.hideButtons) {
+      if (this.controller.buttons != this.oldController.buttons) {
         this.shirt.traverse(child => {
           if (child.name.includes("Button")) {
-            child.visible = !this.controller.hideButtons;
+            child.visible = this.controller.buttons !== "noButtons";
           }
         });
 
         this.oldController = {
           ...this.oldController,
-          hideButtons: this.controller.hideButtons
+          buttons: this.controller.buttons
         };
       }
     },
@@ -279,16 +282,16 @@ export default {
       }
     },
     handleShowHideCuffs() {
-      if (this.controller.hideCuffs != this.oldController.hideCuffs) {
+      if (this.controller.cuffs != this.oldController.cuffs) {
         this.shirt.traverse(child => {
           if (child.name.includes("Cuff")) {
-            child.visible = !this.controller.hideCuffs;
+            child.visible = this.controller.cuffs !== "noCuffs";
           }
         });
 
         this.oldController = {
           ...this.oldController,
-          hideCuffs: this.controller.hideCuffs
+          cuffs: this.controller.cuffs
         };
       }
     },
@@ -346,7 +349,7 @@ export default {
     },
     handleCuffsMaterialChange() {
       if (
-        !this.controller.hideCuffs &&
+        this.controller.cuffs !== "noCuffs" &&
         this.oldController.cuffsMaterial !== this.controller.cuffsMaterial &&
         this.materials[this.controller.cuffsMaterial]
       ) {

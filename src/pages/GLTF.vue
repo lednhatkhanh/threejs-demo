@@ -33,12 +33,21 @@ export default {
       controller: undefined,
       oldController: undefined,
       stats: undefined,
-      materials: {}
+      materials: {},
+      gui: undefined
     };
   },
-  mounted() {
-    this.loadAllShirtMaterials();
+  async mounted() {
+    this.materials = { ...(await this.loadAllShirtMaterials()) };
     this.init();
+  },
+  destroyed() {
+    if (this.stats) {
+      this.stats.dom.remove();
+    }
+    if (this.gui) {
+      this.gui.destroy();
+    }
   },
   methods: {
     onTransitionEnd(event) {
@@ -139,9 +148,9 @@ export default {
     },
     createDataGUI() {
       this.controller = new (function() {
-        this.hideCollar = false;
-        this.hideCuffs = false;
-        this.hideButtons = false;
+        this.collar = "normal";
+        this.cuffs = "normal";
+        this.buttons = "normal";
 
         // Material
         this.frontMaterial = materialList[0];
@@ -154,14 +163,14 @@ export default {
         ...this.controller
       };
 
-      const gui = new dat.GUI();
-      const shirtFolder = gui.addFolder("Shirt");
+      this.gui = new dat.GUI();
+      const shirtFolder = this.gui.addFolder("Shirt");
       shirtFolder.closed = false;
-      shirtFolder.add(this.controller, "hideCollar");
-      shirtFolder.add(this.controller, "hideCuffs");
-      shirtFolder.add(this.controller, "hideButtons");
+      shirtFolder.add(this.controller, "collar", ["normal", "noCollar"]);
+      shirtFolder.add(this.controller, "cuffs", ["normal", "noCuffs"]);
+      shirtFolder.add(this.controller, "buttons", ["normal", "noButtons"]);
 
-      const materialFolder = gui.addFolder("Materials");
+      const materialFolder = this.gui.addFolder("Materials");
       materialFolder.closed = false;
       materialFolder.add(this.controller, "frontMaterial", materialList);
       materialFolder.add(this.controller, "backMaterial", materialList);
@@ -169,31 +178,39 @@ export default {
       materialFolder.add(this.controller, "cuffsMaterial", materialList);
     },
     loadAllShirtMaterials() {
-      const textureLoader = new THREE.TextureLoader();
-      materialList.forEach(materialName => {
-        const materialPath = `${process.env.VUE_APP_API_ENDPOINT}/assets/shirt/textures/${materialName}`;
+      return new Promise(resolve => {
+        const textureLoader = new THREE.TextureLoader();
+        const materials = {};
 
-        const map = textureLoader.load(`${materialPath}/map.jpg`);
-        const normal = textureLoader.load(`${materialPath}/normal.jpg`);
-        const displacement = textureLoader.load(
-          `${materialPath}/displacement.png`
-        );
-        const occlusion = textureLoader.load(`${materialPath}/occlusion.jpg`);
+        materialList.forEach(materialName => {
+          const materialPath = `${process.env.VUE_APP_API_ENDPOINT}/assets/shirt/textures/${materialName}`;
 
-        map.userData = {
-          fitTo: 1
-        };
-        map.wrapS = THREE.RepeatWrapping;
-        map.wrapT = THREE.RepeatWrapping;
-        map.offset.set(0, 0);
-        map.repeat.set(10, 10);
+          const map = textureLoader.load(`${materialPath}/map.jpg`);
+          const normal = textureLoader.load(`${materialPath}/normal.jpg`);
+          const displacement = textureLoader.load(
+            `${materialPath}/displacement.png`
+          );
+          const occlusion = textureLoader.load(`${materialPath}/occlusion.jpg`);
 
-        this.materials[materialName] = new THREE.MeshPhongMaterial({
-          map,
-          normalMap: normal,
-          bumpMap: displacement,
-          aoMap: occlusion,
-          shininess: 0
+          map.userData = {
+            fitTo: 1
+          };
+          map.wrapS = THREE.RepeatWrapping;
+          map.wrapT = THREE.RepeatWrapping;
+          map.offset.set(0, 0);
+          map.repeat.set(10, 10);
+
+          materials[materialName] = new THREE.MeshPhongMaterial({
+            map,
+            normalMap: normal,
+            bumpMap: displacement,
+            aoMap: occlusion,
+            shininess: 0
+          });
+
+          if (Object.keys(materials).length === materialList.length) {
+            resolve(materials);
+          }
         });
       });
     },
@@ -225,44 +242,44 @@ export default {
       }
     },
     handleShowHideButtons() {
-      if (this.controller.hideButtons != this.oldController.hideButtons) {
+      if (this.controller.buttons != this.oldController.buttons) {
         this.shirt.traverse(child => {
           if (child.name.includes("Button")) {
-            child.visible = !this.controller.hideButtons;
+            child.visible = this.controller.buttons !== "noButtons";
           }
         });
 
         this.oldController = {
           ...this.oldController,
-          hideButtons: this.controller.hideButtons
+          buttons: this.controller.buttons
         };
       }
     },
     handleShowHideCollar() {
-      if (this.controller.hideCollar != this.oldController.hideCollar) {
+      if (this.controller.collar != this.oldController.collar) {
         this.shirt.traverse(child => {
           if (child.name.includes("Collar")) {
-            child.visible = !this.controller.hideCollar;
+            child.visible = this.controller.collar !== "noCollar";
           }
         });
 
         this.oldController = {
           ...this.oldController,
-          hideCollar: this.controller.hideCollar
+          collar: this.controller.collar
         };
       }
     },
     handleShowHideCuffs() {
-      if (this.controller.hideCuffs != this.oldController.hideCuffs) {
+      if (this.controller.cuffs != this.oldController.cuffs) {
         this.shirt.traverse(child => {
           if (child.name.includes("Cuff")) {
-            child.visible = !this.controller.hideCuffs;
+            child.visible = this.controller.cuffs !== "noCuffs";
           }
         });
 
         this.oldController = {
           ...this.oldController,
-          hideCuffs: this.controller.hideCuffs
+          cuffs: this.controller.cuffs
         };
       }
     },
@@ -320,7 +337,7 @@ export default {
     },
     handleCuffsMaterialChange() {
       if (
-        !this.controller.hideCuffs &&
+        this.controller.cuffs !== "noCuffs" &&
         this.oldController.cuffsMaterial !== this.controller.cuffsMaterial &&
         this.materials[this.controller.cuffsMaterial]
       ) {
