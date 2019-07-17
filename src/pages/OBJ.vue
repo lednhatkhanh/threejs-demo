@@ -45,6 +45,11 @@ export default {
   destroyed() {
     this.stats.dom.remove();
     this.gui.destroy();
+    window.removeEventListener(
+      "resize",
+      this.resizeRendererToDisplaySize,
+      false
+    );
   },
   methods: {
     onTransitionEnd(event) {
@@ -62,12 +67,33 @@ export default {
       this.scene = new THREE.Scene();
       this.scene.background = new THREE.Color(0xf2f3f4);
 
-      const ambientLight = new THREE.AmbientLight(0xcccccc, 0.4);
-      this.scene.add(ambientLight);
+      const spotLight1 = new THREE.SpotLight(0xffffff, 1, 20);
+      spotLight1.position.set(10, 5, 5);
+      spotLight1.castShadow = true;
+      this.scene.add(spotLight1);
 
-      const pointLight = new THREE.PointLight(0xffffff, 0.8);
+      const spotLight2 = new THREE.SpotLight(0xffffff, 1, 20);
+      spotLight2.position.set(-10, 5, 5);
+      spotLight2.castShadow = true;
+      this.scene.add(spotLight2);
+
+      const pointLight = new THREE.PointLight(0xffffff, 3.2, 20, 2);
+      pointLight.position.set(0, 2, 5);
       this.camera.add(pointLight);
       this.scene.add(this.camera);
+
+      const planeGeometry = new THREE.PlaneGeometry(13, 13, 1, 1);
+      const planeMaterial = new THREE.MeshPhongMaterial({
+        color: 0x808080,
+        dithering: true
+      });
+      const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+      // plane.rotateX(-Math.PI / 2);
+      plane.receiveShadow = true;
+      this.scene.add(plane);
+
+      // plane.position.y = 3;
+      plane.position.z = -2;
 
       this.createDataGUI();
       this.stats = new STATS();
@@ -78,7 +104,7 @@ export default {
       const buttonTexture = textureLoader.load(
         `${process.env.VUE_APP_API_ENDPOINT}/assets/shirt/textures/button.jpg`
       );
-      const buttonMaterial = new THREE.MeshBasicMaterial({
+      const buttonMaterial = new THREE.MeshPhongMaterial({
         map: buttonTexture
       });
 
@@ -135,6 +161,9 @@ export default {
       box.getCenter(center);
       group.position.sub(center);
 
+      spotLight1.target = group;
+      spotLight2.target = group;
+
       this.shirt = group;
       this.scene.add(this.shirt);
 
@@ -145,6 +174,9 @@ export default {
       });
       this.renderer.setSize(window.innerWidth, window.innerHeight);
       this.renderer.setPixelRatio(window.devicePixelRatio);
+      this.renderer.setClearColor(new THREE.Color(0xffffff, 1.0));
+      this.renderer.shadowMap.enabled = true;
+      this.renderer.shadowMap.type = THREE.PCFShadowMap;
 
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
       this.controls.enableDamping = true;
