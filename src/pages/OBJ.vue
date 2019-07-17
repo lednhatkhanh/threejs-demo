@@ -122,7 +122,7 @@ export default {
           if (child.name.includes("Button")) {
             child.material = buttonMaterial;
           } else {
-            child.material = this.materials.material1;
+            child.material = this.materials.material2;
           }
 
           child.castShadow = true;

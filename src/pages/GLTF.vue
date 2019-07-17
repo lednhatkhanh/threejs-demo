@@ -109,7 +109,7 @@ export default {
             if (mesh.name.includes("Button")) {
               mesh.material = buttonMaterial;
             } else {
-              mesh.material = this.materials.material1;
+              mesh.material = this.materials.material3;
             }
             group.add(mesh);
           });
