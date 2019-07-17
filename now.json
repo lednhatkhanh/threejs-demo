@@ -9,5 +9,10 @@
     { "src": "^/assets/(.*)", "dest": "/assets/$1" },
     { "src": ".*", "dest": "/index.html" }
   ],
-  "alias": ["threejs-demo"]
+  "alias": ["threejs-demo"],
+  "build": {
+    "env": {
+      "VUE_APP_API_ENDPOINT": "https://threejs-demo-api.herokuapp.com"
+    }
+  }
 }
