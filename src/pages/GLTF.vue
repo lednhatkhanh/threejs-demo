@@ -1,6 +1,9 @@
 <template>
   <div>
     <canvas ref="canvas"></canvas>
+    <!-- <button class="rotate-button" @click="rotateModel">
+      <img src="/assets/rotate.svg" />
+    </button>-->
     <section id="loading-screen">
       <div id="loader"></div>
     </section>
@@ -9,7 +12,7 @@
 
 <script>
 import * as THREE from "three";
-import OrbitControls from "three-orbitcontrols";
+// import OrbitControls from "three-orbitcontrols";
 import * as dat from "dat.gui";
 import * as STATS from "stats.js";
 
@@ -19,6 +22,13 @@ import { GLTFLoader } from "../loaders/gltf-loader";
 const materialList = Array.from({ length: 5 }).map(
   (_v, i) => `material${i + 1}`
 );
+
+// Rotation
+let targetRotationX = 0;
+let targetRotationOnMouseDownX = 0;
+
+let mouseX = 0;
+let mouseXOnMouseDown = 0;
 
 export default {
   name: "app",
@@ -49,10 +59,15 @@ export default {
       this.gui.destroy();
     }
     window.removeEventListener(
-        "resize",
-        this.resizeRendererToDisplaySize,
-        false
-      );
+      "resize",
+      this.resizeRendererToDisplaySize,
+      false
+    );
+    window.removeEventListener(
+      "mousedown",
+      this.handleDocumentMouseDown,
+      false
+    );
   },
   methods: {
     onTransitionEnd(event) {
@@ -104,14 +119,15 @@ export default {
       this.stats.showPanel(0);
       document.body.appendChild(this.stats.dom);
 
-      const buttonTexture = new THREE.TextureLoader().load(
-        `${process.env.VUE_APP_API_ENDPOINT}/assets/shirt/textures/button.jpg`
-      );
-      buttonTexture.offset.x = 0.3;
-      buttonTexture.offset.y = 0.34;
-      buttonTexture.repeat.set(0.69, 0.69);
+      // const buttonTexture = new THREE.TextureLoader().load(
+      //   `${process.env.VUE_APP_API_ENDPOINT}/assets/shirt/textures/button.jpg`
+      // );
+      // buttonTexture.offset.x = 0.3;
+      // buttonTexture.offset.y = 0.34;
+      // buttonTexture.repeat.set(0.69, 0.69);
       const buttonMaterial = new THREE.MeshPhongMaterial({
-        map: buttonTexture
+        // map: buttonTexture
+        color: 0x424242
       });
 
       const loadingManager = new THREE.LoadingManager(() => {
@@ -164,10 +180,10 @@ export default {
       this.renderer.shadowMap.enabled = true;
       this.renderer.shadowMap.type = THREE.PCFShadowMap;
 
-      this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-      this.controls.enableDamping = true;
-      this.controls.dampingFactor = 0.25;
-      this.controls.enableZoom = true;
+      // this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+      // this.controls.enableDamping = false;
+      // this.controls.dampingFactor = 0.25;
+      // this.controls.enableZoom = true;
 
       this.stats.begin();
       this.render();
@@ -175,6 +191,61 @@ export default {
       window.addEventListener(
         "resize",
         this.resizeRendererToDisplaySize,
+        false
+      );
+      window.addEventListener("mousedown", this.handleDocumentMouseDown, false);
+    },
+    handleDocumentMouseDown(event) {
+      event.preventDefault();
+
+      document.addEventListener(
+        "mousemove",
+        this.handleDocumentMouseMove,
+        false
+      );
+      document.addEventListener("mouseup", this.handleDocumentMouseUp, false);
+      document.addEventListener("mouseout", this.handleDocumentMouseOut, false);
+
+      mouseXOnMouseDown = event.clientX - window.innerWidth / 2;
+      targetRotationOnMouseDownX = targetRotationX;
+    },
+    handleDocumentMouseMove(event) {
+      mouseX = event.clientX - window.innerWidth / 2;
+
+      targetRotationX =
+        targetRotationOnMouseDownX + (mouseX - mouseXOnMouseDown) * 0.02;
+    },
+    handleDocumentMouseUp() {
+      document.removeEventListener(
+        "mousemove",
+        this.handleDocumentMouseMove,
+        false
+      );
+      document.removeEventListener(
+        "mouseup",
+        this.handleDocumentMouseUp,
+        false
+      );
+      document.removeEventListener(
+        "mouseout",
+        this.handleDocumentMouseOut,
+        false
+      );
+    },
+    handleDocumentMouseOut() {
+      document.removeEventListener(
+        "mousemove",
+        this.handleDocumentMouseMove,
+        false
+      );
+      document.removeEventListener(
+        "mouseup",
+        this.handleDocumentMouseUp,
+        false
+      );
+      document.removeEventListener(
+        "mouseout",
+        this.handleDocumentMouseOut,
         false
       );
     },
@@ -255,6 +326,10 @@ export default {
         this.handleBackMaterialChange();
         this.handleSleevesMaterialChange();
         this.handleCuffsMaterialChange();
+
+        //horizontal rotation
+        this.shirt.rotation.y +=
+          (targetRotationX - this.shirt.rotation.y) * 0.1;
       }
 
       this.stats.update();
@@ -393,6 +468,16 @@ export default {
 body {
   margin: 0;
   overflow: hidden;
+}
+
+.rotate-button {
+  position: fixed;
+  right: 80px;
+  bottom: 80px;
+  background-color: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
 }
 
 #loading-screen {
